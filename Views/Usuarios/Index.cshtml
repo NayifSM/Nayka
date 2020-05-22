@@ -1,0 +1,65 @@
+﻿@model IEnumerable<Ventas.Web.Data.Entities.Usuarios>
+
+@{
+    ViewData["Title"] = "Usuarios";
+}
+
+<h2>Usuarios</h2>
+
+<p>
+    <a asp-action="Create" class="btn btn-primary">Crear Nuevo</a>
+</p>
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.Nombre)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Apellido_Paterno)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Apellido_Materno)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Direccion)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Correo)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Telefono)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.Nombre)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Apellido_Paterno)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Apellido_Materno)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Direccion)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Correo)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Telefono)
+            </td>
+            <td>
+                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-warning">Editar</a>
+                <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-info">Detalles</a>
+                <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-danger">Eliminar</a>
+            </td>
+        </tr>
+}
+    </tbody>
+</table>
