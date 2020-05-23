@@ -8,15 +8,25 @@ using Ventas.Web.Models;
 
 namespace Ventas.Web.Data.Entities
 {
-    public class RepositorioPedidos 
+    public class RepositorioPedidos : IRepositorioGenerico<Pedido>, IRepositorioPedido
     {
+
         private readonly DataContext context;
-        public RepositorioPedidos(DataContext context) 
+        private readonly IUsuariosAyuda usuariosAyuda;
+
+        public RepositorioPedidos(DataContext context, IUsuariosAyuda usuariosAyuda) : base(context)
         {
             this.context = context;
+            this.usuariosAyuda = usuariosAyuda;
         }
         public async Task<IQueryable<Pedido>> GetOrdersAsync(string userName)
         {
+            var user = await this.userHelper.GetUserByEmailAsync(userName);
+            if (user == null)
+            {
+                return null;
+            }
+
             return this.context.Pedido
                 .Include(o => o.Items)
                 .ThenInclude(i => i.Product)

@@ -1,153 +1,133 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
-using Shop.Web.Data;
 using Ventas.Web.Data.Entities;
+using Ventas.Web.Models;
 
 namespace Ventas.Web.Controllers
 {
     public class PedidosController : Controller
     {
-        private readonly DataContext _context;
+        private readonly IRepositorioProducto repositorioProducto;
+        private readonly IRepositorioPedido repositorioPedido;
 
-        public PedidosController(DataContext context)
+        public PedidosController(
+            IRepositorioProducto repositorioPedido,
+            IRepositorioPedido repositorioProducto)
         {
-            _context = context;
+            this.repositorioProducto = repositorioPedido;
+            this.repositorioPedido = repositorioProducto;
         }
 
         // GET: Pedidos
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Pedido.ToListAsync());
+            var model = await repositorioPedido.GetOrdersAsync(this.User.Identity.Name);
+            return View(model);
         }
-
-        // GET: Pedidos/Details/5
-        public async Task<IActionResult> Details(int? id)
-        {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var pedido = await _context.Pedido
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (pedido == null)
-            {
-                return NotFound();
-            }
-
-            return View(pedido);
-        }
-
-        // GET: Pedidos/Create
-        public IActionResult Create()
-        {
-            return View();
-        }
-
-        // POST: Pedidos/Create
-        // To protect from overposting attacks, please enable the specific properties you want to bind to, for 
-        // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,OrdenFecha,DeliveryFecha")] Pedido pedido)
-        {
-            if (ModelState.IsValid)
-            {
-                _context.Add(pedido);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
-            }
-            return View(pedido);
-        }
-
-        // GET: Pedidos/Edit/5
-        public async Task<IActionResult> Edit(int? id)
-        {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var pedido = await _context.Pedido.FindAsync(id);
-            if (pedido == null)
-            {
-                return NotFound();
-            }
-            return View(pedido);
-        }
-
-        // POST: Pedidos/Edit/5
-        // To protect from overposting attacks, please enable the specific properties you want to bind to, for 
-        // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,OrdenFecha,DeliveryFecha")] Pedido pedido)
-        {
-            if (id != pedido.Id)
-            {
-                return NotFound();
-            }
-
-            if (ModelState.IsValid)
-            {
-                try
+          public async Task<IActionResult> Create()
                 {
-                    _context.Update(pedido);
-                    await _context.SaveChangesAsync();
+                    var model = await this.repositorioPedido.GetDetailTempsAsync(this.User.Identity.Name);
+                    return this.View(model);
                 }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!PedidoExists(pedido.Id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-                return RedirectToAction(nameof(Index));
-            }
-            return View(pedido);
-        }
+        public IActionResult AddProduct()
+        {
+            var model = new AgregarElemento
+            {
+                Cantidad = 1,
+                Products = this.repositorioProducto.GetComboProducts()
+            };
 
-        // GET: Pedidos/Delete/5
-        public async Task<IActionResult> Delete(int? id)
+            return View(model);
+        }
+      
+
+        [HttpPost]
+        public async Task<IActionResult> AddProduct(AgregarElemento model)
+        {
+            if (this.ModelState.IsValid)
+            {
+                await this.repositorioPedido.AddItemToOrderAsync(model, this.User.Identity.Name);
+                return this.RedirectToAction("Create");
+            }
+
+            return this.View(model);
+        }
+        public async Task<IActionResult> DeleteItem(int? id)
         {
             if (id == null)
             {
                 return NotFound();
             }
 
-            var pedido = await _context.Pedido
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (pedido == null)
+            await this.repositorioPedido.DeleteDetailTempAsync(id.Value);
+            return this.RedirectToAction("Create");
+        }
+
+        public async Task<IActionResult> Increase(int? id)
+        {
+            if (id == null)
             {
                 return NotFound();
             }
 
-            return View(pedido);
+            await this.repositorioPedido.ModifyOrderDetailTempQuantityAsync(id.Value, 1);
+            return this.RedirectToAction("Create");
         }
 
-        // POST: Pedidos/Delete/5
-        [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
+        public async Task<IActionResult> Decrease(int? id)
         {
-            var pedido = await _context.Pedido.FindAsync(id);
-            _context.Pedido.Remove(pedido);
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            await this.repositorioPedido.ModifyOrderDetailTempQuantityAsync(id.Value, -1);
+            return this.RedirectToAction("Create");
+        }
+        public async Task<IActionResult> ConfirmOrder()
+        {
+            var response = await this.repositorioPedido.ConfirmOrderAsync(this.User.Identity.Name);
+            if (response)
+            {
+                return this.RedirectToAction("Index");
+            }
+
+            return this.RedirectToAction("Create");
         }
 
-        private bool PedidoExists(int id)
+        public async Task<IActionResult> Deliver(int? id)
         {
-            return _context.Pedido.Any(e => e.Id == id);
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var order = await this.repositorioPedido.GetOrdersAsync(id.Value);
+            if (order == null)
+            {
+                return NotFound();
+            }
+
+            var model = new Delivery
+            {
+                Id = order.Id,
+                DeliveryFecha = DateTime.Today
+            };
+
+            return View(model);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Deliver(Delivery model)
+        {
+            if (this.ModelState.IsValid)
+            {
+                await this.repositorioPedido.DeliverOrder(model);
+                return this.RedirectToAction("Index");
+            }
+
+            return this.View();
         }
     }
 }
